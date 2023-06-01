@@ -1,4 +1,5 @@
 
+
 ############# Informations ###############
 # Regarder ce tuto pour mieux comprendre : https://stmorse.github.io/journal/spotify-api.html
 # Ce tuto à compléter en fonction de ce que l'on veut faire : https://spotipy.readthedocs.io/en/2.22.1/
@@ -99,25 +100,56 @@ def get_features_from_playlist(playlist_link) :
     playlist_URI = playlist_link.split("/")[-1].split("?")[0]
     track_uris = [x["track"]["uri"] for x in sp.playlist_tracks(playlist_URI)["items"]]
     
+    col_names =  ["track_uri", "track_name", "artist_uri","artist_info","artist_name","artist_pop","artist_genres","album",'track_pop','acousticness', 'danceability', 'duration_ms', 'energy', 'instrumentalness', 'key', 'liveness', 'loudness', 'mode', 'speechiness', 'tempo', 'time_signature', 'valence']
+    df  = pd.DataFrame(columns = col_names)
+
     for track in sp.playlist_tracks(playlist_URI)["items"]:
-    #URI
-    track_uri = track["track"]["uri"]
-    #Track name
-    track_name = track["track"]["name"]
-    #Main Artist
-    artist_uri = track["track"]["artists"][0]["uri"]
-    artist_info = sp.artist(artist_uri)
-    #Name, popularity, genre
-    artist_name = track["track"]["artists"][0]["name"]
-    artist_pop = artist_info["popularity"]
-    artist_genres = artist_info["genres"]
-    #Album
-    album = track["track"]["album"]["name"]
-    #Popularity of the track
-    track_pop = track["track"]["popularity"]
-    df = pd.data
-    
-sp.audio_features(track_uri)[0]
+        #URI
+        track_uri = track["track"]["uri"]
+        
+        #Track name
+        track_name = track["track"]["name"]
+        
+        #Main Artist
+        artist_uri = track["track"]["artists"][0]["uri"]
+        artist_info = sp.artist(artist_uri)
+        
+        #Name, popularity, genre
+        artist_name = track["track"]["artists"][0]["name"]
+        artist_pop = artist_info["popularity"]
+        artist_genres = artist_info["genres"]
+        
+        #Album
+        album = track["track"]["album"]["name"]
+        
+        #Popularity of the track
+        track_pop = track["track"]["popularity"]
+        features = sp.audio_features(track_uri)[0]
+        acousticness = features["acousticness"]
+        danceability = features["danceability"]
+        duration_ms = features["duration_ms"]
+        energy = features["energy"]
+        instrumentalness = features["instrumentalness"]
+        key = features["key"]
+        liveness = features["liveness"]
+        loudness = features["loudness"]
+        mode = features["mode"]
+        speechiness = features["speechiness"]
+        tempo = features["tempo"]
+        time_signature = features["time_signature"]
+        valence = features["valence"]
+        df_new_row =  pd.DataFrame([[track_uri, track_name, artist_uri, artist_info, artist_name, artist_pop, artist_genres, album, track_pop,acousticness, danceability, duration_ms, energy, instrumentalness, key, liveness, loudness, mode, speechiness, tempo, time_signature, valence]], columns = col_names)
+        df = pd.concat([df,df_new_row], ignore_index=True)
+    return df
+
+data = get_features_from_playlist(playlist_link)   
+
+playlist_link = "https://open.spotify.com/playlist/13bvOZl3gV7si5jRHpBzeI"
+data = get_features_from_playlist(playlist_link)
+
+playlist_link2 = "https://open.spotify.com/playlist/67P7kU1wEfx1oCQUmsVWQu"
+data2 = get_features_from_playlist(playlist_link2)
+
 ############# Getting information on a song ###############
 def get_info(track_id):
     # actual GET request with proper header
