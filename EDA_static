@@ -1,1 +1,279 @@
+############# Informations ###############
+# Ce fichier est inspiré du projet : https://github.com/makispl/Spotify-Data-Analysis/blob/master/Spotify_Data_Manipulation_Python.ipynb
+# Pour une meilleure compréhension, regarder le lien.
+
+
+######### Import the libraries #########
+import acces
+import seaborn as sns
+import os
+import pandas as pd
+import numpy as np
+import json
+import matplotlib.pyplot as plt
+
+
+######### Import data #########
+# Cette partie a pour objectif d'importer les données pour les utiliser par la suite.
+
+df_dinner = fetch_audio_features(sp, username, '37SqXO5bm81JmGCiuhin0L')[['artist_pop', 'artist_genres',
+        'track_pop', 'acousticness', 'danceability', 'duration_ms',
+       'energy', 'instrumentalness', 'key', 'liveness', 'loudness', 'mode',
+       'speechiness', 'tempo', 'time_signature', 'valence']]
+df_party = fetch_audio_features(sp, username, '2m75Xwwn4YqhwsxHH7Qc9W')[['artist_pop', 'artist_genres',
+        'track_pop', 'acousticness', 'danceability', 'duration_ms',
+       'energy', 'instrumentalness', 'key', 'liveness', 'loudness', 'mode',
+       'speechiness', 'tempo', 'time_signature', 'valence']]
+df_lounge = fetch_audio_features(sp, username, '6Jbi3Y7ZNNgSrPaZF4DpUp')[['artist_pop', 'artist_genres',
+        'track_pop', 'acousticness', 'danceability', 'duration_ms',
+       'energy', 'instrumentalness', 'key', 'liveness', 'loudness', 'mode',
+       'speechiness', 'tempo', 'time_signature', 'valence']]
+df_pop = fetch_audio_features(sp, username, '3u2nUYNuI08yUg877JE5FI')[['artist_pop', 'artist_genres',
+        'track_pop', 'acousticness', 'danceability', 'duration_ms',
+       'energy', 'instrumentalness', 'key', 'liveness', 'loudness', 'mode',
+       'speechiness', 'tempo', 'time_signature', 'valence']]
+
+
+
+
+
+######### Data Mean comparaison #########
+plt.style.use('fivethirtyeight')
+
+fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(13, 13))
+ax1, ax2, ax3, ax4 = axes.flatten()
+fig.subplots_adjust(hspace=.2, wspace=.5)
+
+# top left
+df_dinner[['artist_pop',
+        'track_pop', 'acousticness', 'danceability', 'duration_ms',
+       'energy', 'instrumentalness', 'key', 'liveness', 'loudness', 'mode',
+       'speechiness', 'tempo', 'time_signature', 'valence']].mean().plot.barh(ax=ax1, colormap=plt.cm.Accent, fontsize=13)
+ax1.set_xlim(-25,130)
+
+# top right
+df_party[['artist_pop', 
+        'track_pop', 'acousticness', 'danceability', 'duration_ms',
+       'energy', 'instrumentalness', 'key', 'liveness', 'loudness', 'mode',
+       'speechiness', 'tempo', 'time_signature', 'valence']].mean().plot.barh(ax=ax2, colormap='winter', fontsize=13)
+ax2.set_xlim(-25,130)
+
+# bottom left
+df_lounge[['artist_pop',
+        'track_pop', 'acousticness', 'danceability', 'duration_ms',
+       'energy', 'instrumentalness', 'key', 'liveness', 'loudness', 'mode',
+       'speechiness', 'tempo', 'time_signature', 'valence']].mean().plot.barh(ax=ax3, colormap='cubehelix', fontsize=13)
+ax3.set_xlim(-25,130)
+
+# bottom right
+df_pop[['artist_pop',
+        'track_pop', 'acousticness', 'danceability', 'duration_ms',
+       'energy', 'instrumentalness', 'key', 'liveness', 'loudness', 'mode',
+       'speechiness', 'tempo', 'time_signature', 'valence']].mean().plot.barh(ax=ax4, colormap='gist_rainbow', fontsize=13)
+ax4.set_xlim(-25,130)
+
+# Create axis titles
+ax1.set_title('Dinner Playlist')
+ax2.set_title('Party Playlist')
+ax3.set_title('Lounge Playlist')
+ax4.set_title('Pop Playlist')
+
+plt.show()
+
+# More than obviously, the Party and Pop playlists are more suitable to the ceremony, the rest can be ignored.
+
+
+
+
+
+######### Data Mean Comparaison Table #########
+party_mean = pd.DataFrame(df_party[['artist_pop',
+        'track_pop', 'acousticness', 'danceability', 'duration_ms',
+       'energy', 'instrumentalness', 'key', 'liveness', 'loudness', 'mode',
+       'speechiness', 'tempo', 'time_signature', 'valence']].mean(), columns= ['party_playlist'])
+pop_mean = pd.DataFrame(df_pop[['artist_pop',
+        'track_pop', 'acousticness', 'danceability', 'duration_ms',
+       'energy', 'instrumentalness', 'key', 'liveness', 'loudness', 'mode',
+       'speechiness', 'tempo', 'time_signature', 'valence']].mean(), columns= ['pop_playlist'])
+
+party_pop_mean = pd.concat([party_mean, pop_mean], axis=1)
+party_pop_mean
+
+# An initial approach, gives the impression that the Party playlist overlaps the Pop one, in terms of the audio features, except from that of danceability.
+# Indeed, except from the danceability, the Party playlist is better than the Pop one, in terms of the loudness, tempo, energy & valence audio features. So, we are going to focus on this one and get it as better it can b
+
+
+
+
+######### Data Description #########
+df_party.describe()
+
+df_party[['artist_pop',
+        'track_pop', 'acousticness', 'danceability',
+       'energy', 'instrumentalness', 'liveness', 'loudness', 'mode',
+       'speechiness', 'tempo', 'valence']].boxplot(vert = False, figsize = (13,7), showfliers = False, showmeans = True, 
+                 patch_artist=True, boxprops=dict(linestyle='-', linewidth=1.5),
+                 flierprops=dict(linestyle='-', linewidth=1.5),
+                 medianprops=dict(linestyle='-', linewidth=1.5),
+                 whiskerprops=dict(linestyle='-', linewidth=1.5),
+                 capprops=dict(linestyle='-', linewidth=1.5))
+
+plt.title("Original Playlist's Box Plot", fontsize=16, fontweight='heavy')
+plt.show()
+
+# Les variables Key, Time_duration et Time_signature ont été enlevées pour des raisons évidentes de visibilité
+
+# From the above Box-and-Whisker plot we can better perceive each feature's individual distribution, which compared to the table of descriptive statistics (see above), gives us a good visual intuition about the proportion of values that fall under a certain quartile, between any two quartiles, or between a quartile and the minimum or the maximum value in the distribution.
+# We generally aim to "push" the distribution of each feature as much as possible to the right, that is, to increase them along the playist's tracks, in order to achiveve a better "party" experience! This may effectively be done by adding or removing certain tracks from the playlist.
+# Indeed, except from the danceability, the Party playlist is better than the Pop one, in terms of the loudness, tempo, energy & valence audio features. So, we are going to focus on this one and get it as better it can be.
+
+#For our purpose of investigation, we can compare the Median (2nd percentile, indicated by the tringle spot) with the Mean value (indicated by the vertical line), for each one feature and:
+# either shift the Mean to the right (increase the average audio feature)
+# or shift the Median to the right of the Mean (ensure that at least 50% of songs are above of the average)
+# or both
+# That said, the valence, loudness & energy features already meet the 2nd criteria, whereas the loudness and danceability not.
+
+
+
+
+######### Approach 1 #########
+
+df_pop_sample_I = df_pop.sample(n=40, weights='danceability', random_state=1)
+df_pop_sample_I.describe()
+
+df_party_exp_I = pd.concat([df_party, df_pop_sample_I])
+display(df_party.describe())
+df_party_exp_I.describe()
+
+df_party[['artist_pop',
+        'track_pop', 'acousticness', 'danceability',
+       'energy', 'instrumentalness', 'liveness', 'loudness', 'mode',
+       'speechiness', 'tempo', 'valence']].boxplot(vert = False, figsize = (13,7), showfliers = False, showmeans = True, 
+                 patch_artist=True, boxprops=dict(linestyle='-', linewidth=1.5),
+                 flierprops=dict(linestyle='-', linewidth=1.5),
+                 medianprops=dict(linestyle='-', linewidth=1.5),
+                 whiskerprops=dict(linestyle='-', linewidth=1.5),
+                 capprops=dict(linestyle='-', linewidth=1.5))
+
+plt.title("Sample I Box Plot", fontsize=16, fontweight='heavy')
+plt.show()
+
+df_party_exp_I[['artist_pop',
+        'track_pop', 'acousticness', 'danceability',
+       'energy', 'instrumentalness', 'liveness', 'loudness', 'mode',
+       'speechiness', 'tempo', 'valence']].boxplot(vert = False, figsize = (13,7), showfliers = False, showmeans = True, 
+                 patch_artist=True, boxprops=dict(linestyle='-', linewidth=1.5),
+                 flierprops=dict(linestyle='-', linewidth=1.5),
+                 medianprops=dict(linestyle='-', linewidth=1.5),
+                 whiskerprops=dict(linestyle='-', linewidth=1.5),
+                 capprops=dict(linestyle='-', linewidth=1.5))
+
+plt.title("Party I Playlist's Box Plot", fontsize=16, fontweight='heavy')
+plt.show()
+
+
+# Our prime audio feature danceability was increased; the mean got up by almost 0.5. Furthermore, the distribution of tracks along this feature was also optimised slightly. That is, the 2nd (Median) and 3rd (Upper) quartiles have been shifted to the right, from 68.20 to 69.30 and 77.20 to 78.90, respectively.
+# The valence feature, however, got decreased by 0.61, while at the same time, none of the quartiles moved to the "right". With that in mind, we should seek for further optimization opportunities.
+
+
+
+
+######### Approach 2 #########
+
+
+df_pop_sample_II = df_pop[(df_pop['danceability'] > 69.55) & (df_pop['valence'] > 51.89)].copy()
+df_pop_sample_II.describe()
+
+df_pop_sample_II.boxplot(vert = False, figsize = (13,7), showfliers = False, showmeans = True, 
+                 patch_artist=True, boxprops=dict(linestyle='-', linewidth=1.5),
+                 flierprops=dict(linestyle='-', linewidth=1.5),
+                 medianprops=dict(linestyle='-', linewidth=1.5),
+                 whiskerprops=dict(linestyle='-', linewidth=1.5),
+                 capprops=dict(linestyle='-', linewidth=1.5))
+
+plt.title("Sample II Box Plot", fontsize=16, fontweight='heavy')
+plt.show()
+
+df_party_exp_II = pd.concat([df_party, df_pop_sample_II])
+display(df_party.describe())
+df_party_exp_II.describe()
+
+df_party_exp_II.boxplot(vert = False, figsize = (13,7), showfliers = False, showmeans = True, 
+                 patch_artist=True, boxprops=dict(linestyle='-', linewidth=1.5),
+                 flierprops=dict(linestyle='-', linewidth=1.5),
+                 medianprops=dict(linestyle='-', linewidth=1.5),
+                 whiskerprops=dict(linestyle='-', linewidth=1.5),
+                 capprops=dict(linestyle='-', linewidth=1.5))
+
+plt.title("Party II Playlist's Box Plot", fontsize=16, fontweight='heavy')
+plt.show()
+
+
+
+######### Approach 3 #########
+
+
+# Score = (danceability * 30) + (energy * 20) + (tempo * 20) + (loudness * 10) + (valence * 20)
+
+df_party['score'] = df_party['danceability'] * 30 + df_party['energy'] * 20 + df_party['tempo'] * 20 + df_party['loudness'] * 10 + df_party['valence'] * 20
+df_party.describe()
+
+
+df_party_exp_I['score'] = df_party_exp_I['danceability'] * 30 + df_party_exp_I['energy'] * 20 + df_party_exp_I['tempo'] * 20 + df_party_exp_I['loudness'] * 10 + df_party_exp_I['valence'] * 20
+df_party_exp_I.describe()
+
+
+
+df_party_exp_II['score'] = df_party_exp_II['danceability'] * 30 + df_party_exp_II['energy'] * 20 + df_party_exp_II['tempo'] * 20 + df_party_exp_II['loudness'] * 10 + df_party_exp_II['valence'] * 20
+df_party_exp_II.describe()
+
+
+df_pop['score'] = df_pop['danceability'] * 30 + df_pop['energy'] * 20 + df_pop['tempo'] * 20 + df_pop['loudness'] * 10 + df_pop['valence'] * 20
+df_pop.describe()
+
+
+
+df_pop_sample_III = df_pop[df_pop['score'] > df_party['score'].mean()].copy()
+
+
+
+df_party_exp_III = pd.concat([df_party, df_pop_sample_III])
+display(df_party.describe())
+df_party_exp_III.describe()
+
+
+
+df_party_exp_III.iloc[:, :-1].boxplot(vert = False, figsize = (13,7), showfliers = False, showmeans = True, 
+                 patch_artist=True, boxprops=dict(linestyle='-', linewidth=1.5),
+                 flierprops=dict(linestyle='-', linewidth=1.5),
+                 medianprops=dict(linestyle='-', linewidth=1.5),
+                 whiskerprops=dict(linestyle='-', linewidth=1.5),
+                 capprops=dict(linestyle='-', linewidth=1.5))
+
+plt.title("Party III Playlist's Box Plot", fontsize=16, fontweight='heavy')
+plt.show()
+
+
+
+######### CONCLUSION #########
+display(df_party.describe())
+display(df_party_exp_I.describe())
+display(df_party_exp_II.describe())
+df_party_exp_III.describe()
+
+display(df_party.shape[0])
+display(df_party_exp_I.shape[0])
+display(df_party_exp_II.shape[0])
+df_party_exp_III.shape[0]
+
+
+
+df_party['score'].plot.kde(figsize = (14, 7), label = 'Original', legend = True)
+df_party_exp_I['score'].plot.kde(figsize = (14, 7), label = 'Party I', legend = True)
+df_party_exp_II['score'].plot.kde(figsize = (14, 7), label = 'Party II', legend = True)
+df_party_exp_III['score'].plot.kde(figsize = (14, 7), label = 'Party III', legend = True)
+
+plt.title("KDE Plots of Playlists\' Versions", fontsize=16, fontweight='heavy')
+
+
 
