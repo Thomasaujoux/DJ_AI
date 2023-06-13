@@ -1,0 +1,43 @@
+this code good but for all the video and all the face
+
+from deepface import DeepFace
+import cv2
+import matplotlib.pyplot as plt
+
+video_path = "img/video/Hagla.mp4"
+
+# Ouvrir la vidéo
+cap = cv2.VideoCapture(video_path)
+
+# Variables pour suivre le nombre de visages détectés
+face_count = 0
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+    faces = DeepFace.extract_faces(frame, detector_backend='opencv', enforce_detection=False)
+
+    # Vérifier si des visages ont été détectés
+    if len(faces) > 0:
+        # Afficher la frame
+        plt.imshow(frame)
+        plt.axis('off')
+
+        # Analyser les attributs de la frame complète
+        result = DeepFace.analyze(frame)
+        print(f"Résultats pour la frame {face_count + 1}:")
+        print(result)
+
+        # Incrémenter le nombre total de frames traitées
+        face_count += 1
+
+        # Afficher la frame avec les visages détectés
+        plt.show()
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# Libérer les ressources
+cap.release()
+cv2.destroyAllWindows()
