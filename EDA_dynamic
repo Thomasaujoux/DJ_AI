@@ -1,1 +1,157 @@
+import pandas as pd
+
+
+df = pd.read_csv('C:/Users/Thomas Aujoux/hello/raw_data.csv')
+
+# clean up some column values
+df['artist'] = df['artist'].apply(str.title)
+df['artist'] = df['artist'].apply(lambda x: x.replace('_', ' '))
+df['artist'] = df['artist'].apply(lambda x: x.replace('Dj Snake', 'DJ Snake'))
+
+df.head()
+
+
+
+num_tracks = df.groupby(['tracklist'])['position'].max().reset_index()
+num_tracks.rename(columns={'position':'num_tracks'}, inplace=True)
+
+
+df = df.merge(num_tracks, on='tracklist', how='left')
+
+df['percent_complete'] = round(100*(df.position/df['num_tracks']),0)
+df.head()
+# Pourquoi ne pas appliquer cette idée avec la duration plutôt ?
+
+pct_complete = pd.DataFrame({'percent_complete':range(1,101)})
+tracklists = pd.DataFrame({'tracklist':df.tracklist.unique()})
+pct_complete['key'] = 0
+tracklists['key'] = 0
+pct_complete_full = pd.merge(pct_complete.assign(key=0), tracklists.assign(key=0), on='key').drop('key', axis=1)
+pct_complete_full.head()
+
+
+
+df_full = pd.merge(pct_complete_full, df, how='left', on=['tracklist', 'percent_complete'])
+
+df_full = df_full[['artist', 'tracklist', 'percent_complete', 'danceability','energy',
+ 'key','loudness','mode','speechiness','acousticness','instrumentalness','liveliness','valence','tempo']]
+
+df_full.sort_values(['tracklist', 'percent_complete'], inplace=True)
+
+ffill_cols = ['artist', 'danceability','energy','key','loudness','mode','speechiness','acousticness',
+              'instrumentalness','liveliness','valence','tempo']
+
+# forward fill artist and the music features
+for col in ffill_cols:
+    df_full[col] = df_full.groupby(['tracklist'])[col].transform(lambda v: v.ffill())
+
+df_full.head()
+
+
+# define a list of music features
+features = ['danceability', 'energy', 'key', 'loudness', 'mode', 'speechiness', 'acousticness', 'instrumentalness', 'liveliness', 'valence', 'tempo']
+
+for col in features:
+    df_full[col] = df_full.groupby('tracklist')[col].transform(lambda x: x.ewm(span=10).mean())
+
+
+
+
+
+# Inspiration for this graph: https://python-graph-gallery.com/125-small-multiples-for-line-chart/
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
+sns.set(font_scale = 1)
+plt.style.use('seaborn-whitegrid')
+
+for feature in features:
+    pivot = pd.pivot_table(df_full, values=feature, index=['percent_complete'], columns=['artist'], \
+                                 aggfunc='mean')
+
+    fig, axs = plt.subplots(4, 3, figsize=(10,10))
+    fig.subplots_adjust(hspace=0.3)
+    # # create a color palette
+    palette = plt.get_cmap('tab20')
+
+    # multiple line plot
+    num=0
+    for column in pivot:
+
+        fig.subplots_adjust(top=1.05,bottom=-0.05,left=-0.05,right=1.05)
+        ax = axs.flatten()
+        # plot every groups, but discreet
+        for v in pivot:
+            ax[num].plot(pivot.index, pivot[v], marker='', color='grey', linewidth=0.6, alpha=0.3)
+
+        # Plot the lineplot
+        ax[num].plot(pivot.index, pivot[column], marker='', color=palette(num), linewidth=2.4, alpha=0.9, label=column)
+
+        # Add title
+        ax[num].set_title(column, loc='left', fontsize=16, fontweight=0, color=palette(num) )
+
+        num+=1
+
+    # remove empty charts
+    fig.delaxes(axs[3][1])
+    fig.delaxes(axs[3][2])
+
+    fig.suptitle('Avg {} over the course of a DJ set'.format(feature), size=20)
+    fig.subplots_adjust(top=0.89)
+
+    # Adding figure level axis labels:
+    # add a big axes, hide frame
+    fig.add_subplot(111, frameon=False)
+    # hide tick and tick label of the big axes
+    plt.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+    plt.grid(False)
+    plt.xlabel('Percent Completion of the DJ Set', size=16)
+    plt.ylabel(feature, size=16)
+    
+    # these plots do not make sense for key and mode but we plot them anyways for simplicity
+
+
+for col in features:
+  df['change in '+str(col)] = abs(df.sort_values(by=['position'], \
+                                                 ascending=True).groupby(['tracklist'])[col].shift(0)
+    - df.sort_values(by=['position'], ascending=True).groupby(['tracklist'])[col].shift(1))
+
+import numpy as np
+
+
+df['last_position'] = df.sort_values(by=['position'], ascending=True).groupby(['tracklist'])['position'].shift(1)
+df['is_directly_after'] = np.where(df.last_position + 1 == df.position, True, False)
+
+
+
+change_in_characteristics = df[(df['is_directly_after'] == True)]
+
+change_in_characteristics = \
+df[['artist', 'change in loudness', 'change in mode', 'change in speechiness', 'change in acousticness', \
+    'change in instrumentalness', 'change in liveliness', 'change in key',\
+'change in valence', 'change in tempo']]
+
+
+
+df_median_changes = change_in_characteristics.groupby(['artist']).median()
+df_median_changes["artist"] = df_median_changes.index
+
+
+
+plt.xticks(rotation=35)
+sns.set(rc={'figure.figsize':(10,20)}, font_scale = 2, style='whitegrid')
+ax = sns.boxplot(x="artist", y="change in key", data=change_in_characteristics).set_title('Distribution of song-to-song changes in key')
+plt.ylabel('change in key (pitch class integer)')
+
+
+
+
+
+
+plt.xticks(rotation=35)
+sns.set(rc={'figure.figsize':(10,20)}, font_scale = 2, style='whitegrid')
+ax = sns.boxplot(x="artist", y="change in tempo", data=change_in_characteristics).set_title('Distribution of song-to-song changes in tempo')
+plt.ylabel('change in tempo (BPM)')
+
 
