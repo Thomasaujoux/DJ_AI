@@ -28,6 +28,7 @@ f, ax = plt.subplots(figsize=(15, 20))
 sns.heatmap(corr, mask=mask, vmax=1, center=0, square=True, annot=True, linewidths=.5, cbar_kws={"shrink": .4})
 
 
+
 total_data.hist(figsize=(20, 20))
 plt.show()
 
